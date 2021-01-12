@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 
 import cv2
 from PyQt5.QtCore import pyqtSlot, QTimer, QDate
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtWidgets import QDialog, QApplication
 from PyQt5.uic import loadUi
 import mediapipe as mp
@@ -26,6 +26,10 @@ model_points = np.array([
     (-150.0, -150.0, -125.0),  # Miệng trái
     (150.0, -150.0, -125.0)  # Miệng phải
 ])
+
+warning_head_angle = "Cảnh cáo: Đầu thí sinh di chuyển so với camera! - 01"
+warning_missing = "Cảnh cáo: Không tìm thấy thí sinh!"
+warning_missing_hand = "Cảnh cáo: Không tìm thấy tay thí sinh!"
 
 
 def is_valid_normalized_value(value: float) -> bool:
@@ -107,9 +111,15 @@ class UiOutputDialog(QDialog):
         self.Time_Label.setText(current_time)
 
         self.print_results = self.Print_Results.isChecked()
-        self.Print_Results.stateChanged.connect(lambda: self.handle_print_results_change(self.Print_Results))
+        self.Print_Results.stateChanged.connect(self.handle_print_results_change)
 
+        self.head_angle_limit = 30
+        self.Head_Angle_Limit.editingFinished.connect(self.handle_setting_head_angle_limit)
         self.image = None
+
+    def handle_setting_head_angle_limit(self, textbox):
+        self.head_angle_limit = int(textbox.text())
+        pass
 
     def handle_print_results_change(self, button):
         self.print_results = button.isChecked()
@@ -199,6 +209,10 @@ class UiOutputDialog(QDialog):
             rotation_mat, _ = cv2.Rodrigues(rotation_vector)
             pose_mat = cv2.hconcat((rotation_mat, translation_vector))
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
+            self.Warnings_List.item(0).setText("1: Đầu di chuyển " + str(round(euler_angles[1][0], 2)) + " độ so với camera")
+            self.Warnings_List.item(0).setBackground(QColor(255,
+                                                                    0,
+                                                                    0))
             # print(euler_angles)
 
             if self.print_results:
@@ -244,14 +258,6 @@ class UiOutputDialog(QDialog):
             self.imgLabel.setPixmap(QPixmap.fromImage(out_image))
             self.imgLabel.setScaledContents(True)
 
-    def set_warnings(self, ):
-        """
-
-        :return:
-        """
-        self.Warnings_List.addItem("1: Cảnh cáo - Đầu di chuyển hơn 60 độ so với camera!")
-        self.Warnings_List.item(0).setText("abc")
-
 
 # Bắt đầu ứng dụng
 if __name__ == "__main__":
@@ -259,5 +265,4 @@ if __name__ == "__main__":
     window = UiOutputDialog()
     window.show()
     window.start_video(cv2.VideoCapture(0))
-    window.set_warnings()
     sys.exit(app.exec())

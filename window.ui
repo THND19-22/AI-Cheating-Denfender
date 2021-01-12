@@ -157,6 +157,57 @@
      <pointsize>12</pointsize>
     </font>
    </property>
+   <item>
+    <property name="text">
+     <string>1</string>
+    </property>
+    <property name="background">
+     <brush brushstyle="SolidPattern">
+      <color alpha="255">
+       <red>0</red>
+       <green>255</green>
+       <blue>0</blue>
+      </color>
+     </brush>
+    </property>
+    <property name="foreground">
+     <brush brushstyle="NoBrush">
+      <color alpha="255">
+       <red>0</red>
+       <green>0</green>
+       <blue>0</blue>
+      </color>
+     </brush>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>2</string>
+    </property>
+    <property name="background">
+     <brush brushstyle="SolidPattern">
+      <color alpha="255">
+       <red>0</red>
+       <green>255</green>
+       <blue>0</blue>
+      </color>
+     </brush>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>3</string>
+    </property>
+    <property name="background">
+     <brush brushstyle="SolidPattern">
+      <color alpha="255">
+       <red>0</red>
+       <green>255</green>
+       <blue>0</blue>
+      </color>
+     </brush>
+    </property>
+   </item>
   </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
@@ -312,8 +363,6 @@
    </property>
   </widget>
  </widget>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
