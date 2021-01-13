@@ -102,6 +102,7 @@ class UISettings(QDialog):
         self.head_angle_limit = int(self.Head_Angle_Limit.text())
 
         self.Confirm_Button.accepted.connect(lambda: self.handle_accept_changes())
+        self.Confirm_Button.rejected.connect(lambda: window.start_video())
 
     def handle_accept_changes(self):
         self.print_results = self.Print_Results.isChecked()
