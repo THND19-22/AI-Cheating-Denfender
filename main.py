@@ -113,7 +113,7 @@ class UiOutputDialog(QDialog):
         self.print_results = self.Print_Results.isChecked()
         self.Print_Results.stateChanged.connect(self.handle_print_results_change)
 
-        self.head_angle_limit = 30
+        self.head_angle_limit = int(self.Head_Angle_Limit.text())
         self.Head_Angle_Limit.editingFinished.connect(self.handle_setting_head_angle_limit)
         self.image = None
 
@@ -163,7 +163,17 @@ class UiOutputDialog(QDialog):
         if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
             self.Warnings_List.item(1).setText("Không tìm thấy tay!")
             self.Warnings_List.item(1).setBackground(QColor("red"))
-
+        else:
+            if results.left_hand_landmarks is None:
+                self.Warnings_List.item(1).setText("Không tìm thấy tay trái!")
+                self.Warnings_List.item(1).setBackground(QColor("yellow"))
+            else:
+                if results.right_hand_landmarks is None:
+                    self.Warnings_List.item(1).setText("Không tìm thấy tay phải!")
+                    self.Warnings_List.item(1).setBackground(QColor("yellow"))
+                else:
+                    self.Warnings_List.item(1).setText("")
+                    self.Warnings_List.item(1).setBackground(QColor("white"))
 
         # Tính toán góc của khuôn mặt đối với camera
         if results.pose_landmarks is not None:
@@ -216,7 +226,7 @@ class UiOutputDialog(QDialog):
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
             angle = round(abs(euler_angles[1][0]), 2)
             self.Warnings_List.item(0).setText("Đầu di chuyển " + str(angle) + " độ so với camera")
-            color = angle / self.head_angle_limit * 255
+            color = int(angle / self.head_angle_limit * 255)
             if color > 255:
                 color = 255
             self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
