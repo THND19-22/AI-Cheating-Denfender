@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1273</width>
-    <height>720</height>
+    <width>1279</width>
+    <height>652</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -239,65 +239,13 @@
     <string>Menu cảnh cáo</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="Print_Results">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>570</y>
-     <width>21</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_4">
-   <property name="geometry">
-    <rect>
-     <x>860</x>
-     <y>570</y>
-     <width>331</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Hiện kết quả phân tích của khuôn mặt</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_5">
-   <property name="geometry">
-    <rect>
-     <x>860</x>
-     <y>600</y>
-     <width>231</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Giới hạn góc quay đầu (độ)</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
      <x>1100</x>
      <y>190</y>
      <width>131</width>
-     <height>28</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="font">
@@ -309,13 +257,13 @@
     <string>Lịch sử cảnh cáo</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="Head_Angle_Limit">
+  <widget class="QPushButton" name="Settings_Button">
    <property name="geometry">
     <rect>
-     <x>1200</x>
-     <y>600</y>
-     <width>31</width>
-     <height>22</height>
+     <x>1140</x>
+     <y>560</y>
+     <width>91</width>
+     <height>23</height>
     </rect>
    </property>
    <property name="font">
@@ -324,51 +272,7 @@
     </font>
    </property>
    <property name="text">
-    <string>60</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_6">
-   <property name="geometry">
-    <rect>
-     <x>860</x>
-     <y>630</y>
-     <width>311</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Calibri</family>
-     <pointsize>12</pointsize>
-     <weight>75</weight>
-     <italic>false</italic>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Thời gian cảnh báo khi phát hiện gian lận (s)</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="Head_Angle_Min_Time">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>630</y>
-     <width>31</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Calibri</family>
-     <pointsize>12</pointsize>
-     <weight>75</weight>
-     <italic>false</italic>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>1</string>
+    <string>Cài đặt</string>
    </property>
   </widget>
  </widget>

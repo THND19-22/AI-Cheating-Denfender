@@ -4,7 +4,7 @@ import math
 from typing import List, Tuple, Union
 
 import cv2
-from PyQt5.QtCore import pyqtSlot, QTimer, QDate
+from PyQt5.QtCore import QTimer, QDate
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtWidgets import QDialog, QApplication
 from PyQt5.uic import loadUi
@@ -86,22 +86,41 @@ def draw_landmarks(image: np.ndarray,
                     255 * idx_to_coordinates[end_idx][1])) / 2)
                 g = round((round(255 * idx_to_coordinates[start_idx][1]) + round(
                     255 * idx_to_coordinates[end_idx][1])) / 2)
-                # print(str(r) + " " + str(g) + " " + str(idx_to_coordinates[start_idx][1]))
                 cv2.line(image, idx_to_coordinates[start_idx][0],
                          idx_to_coordinates[end_idx][0], (0, g, r),
                          1)
     for landmark_px in idx_to_coordinates.values():
-        # print(str(round(255 * landmark_px[1])) + " " + str(255 - round(255 * landmark_px[1])) + " " + str(landmark_px[1]))
         cv2.circle(image, landmark_px[0], 1, (0, round(255 * landmark_px[1]), 255 - round(255 * landmark_px[1])), 2)
+
+
+class UISettings(QDialog):
+    def __init__(self):
+        super(UISettings, self).__init__()
+        loadUi("settings.ui", self)
+
+        self.print_results = self.Print_Results.isChecked()
+        self.head_angle_limit = int(self.Head_Angle_Limit.text())
+
+        self.Confirm_Button.accepted.connect(lambda: self.handle_accept_changes())
+
+    def handle_accept_changes(self):
+        self.print_results = self.Print_Results.isChecked()
+        self.head_angle_limit = int(self.Head_Angle_Limit.text())
+        window.start_video()
 
 
 class UiOutputDialog(QDialog):
     def __init__(self):
         """ Khởi động ứng dụng """
         super(UiOutputDialog, self).__init__()
+
         self.capture = None
+
         self.timer = QTimer(self)
-        loadUi("./window.ui", self)
+        self.timer.timeout.connect(self.update_frame)
+
+        loadUi("window.ui", self)
+
         self.holistic = mp.solutions.holistic.Holistic(upper_body_only=True)
 
         now = QDate.currentDate()
@@ -110,30 +129,23 @@ class UiOutputDialog(QDialog):
         self.Date_Label.setText(current_date)
         self.Time_Label.setText(current_time)
 
-        self.print_results = self.Print_Results.isChecked()
-        self.Print_Results.stateChanged.connect(self.handle_print_results_change)
-
-        self.head_angle_limit = int(self.Head_Angle_Limit.text())
-        self.Head_Angle_Limit.editingFinished.connect(self.handle_setting_head_angle_limit)
         self.image = None
 
-    def handle_setting_head_angle_limit(self, textbox):
-        self.head_angle_limit = int(textbox.text())
-        pass
+        self.settings = UISettings()
+        self.Settings_Button.clicked.connect(lambda: self.handle_setting_button())
 
-    def handle_print_results_change(self, button):
-        self.print_results = button.isChecked()
+    def handle_setting_button(self):
+        self.pause_video()
+        self.settings.show()
 
-    @pyqtSlot()
-    def start_video(self, camera_name):
-        """
-        Khởi động camera
-        :param camera_name: id camera sẽ dùng
-        """
-        self.capture = camera_name
+    def init_video(self, camera):
+        self.capture = camera
 
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(10)
+    def start_video(self):
+        self.timer.start(1)
+
+    def pause_video(self):
+        self.timer.stop()
 
     def face_rec(self, image):
         """
@@ -151,7 +163,7 @@ class UiOutputDialog(QDialog):
         image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        if self.print_results:
+        if self.settings.print_results:
             # Vẽ dáng người
             draw_landmarks(image, results.pose_landmarks, mp.solutions.holistic.POSE_CONNECTIONS)
 
@@ -226,13 +238,13 @@ class UiOutputDialog(QDialog):
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
             angle = round(abs(euler_angles[1][0]), 2)
             self.Warnings_List.item(0).setText("Đầu di chuyển " + str(angle) + " độ so với camera")
-            color = int(angle / self.head_angle_limit * 255)
+            color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
                 color = 255
             self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
             # print(euler_angles)
 
-            if self.print_results:
+            if self.settings.print_results:
                 (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 500.0)]), rotation_vector,
                                                                  translation_vector, camera_matrix, dist_coeffs)
                 '''
@@ -284,5 +296,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = UiOutputDialog()
     window.show()
-    window.start_video(cv2.VideoCapture(0))
+    window.init_video(cv2.VideoCapture(0))
+    window.start_video()
     sys.exit(app.exec())
