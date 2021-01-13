@@ -159,13 +159,13 @@
    </property>
    <item>
     <property name="text">
-     <string>1</string>
+     <string>Đầu di chuyển 0 độ so với camera</string>
     </property>
     <property name="background">
      <brush brushstyle="SolidPattern">
       <color alpha="255">
-       <red>0</red>
-       <green>255</green>
+       <red>255</red>
+       <green>0</green>
        <blue>0</blue>
       </color>
      </brush>
@@ -182,13 +182,22 @@
    </item>
    <item>
     <property name="text">
-     <string>2</string>
+     <string>Không tìm thấy tay!</string>
     </property>
     <property name="background">
      <brush brushstyle="SolidPattern">
       <color alpha="255">
+       <red>255</red>
+       <green>0</green>
+       <blue>0</blue>
+      </color>
+     </brush>
+    </property>
+    <property name="foreground">
+     <brush brushstyle="NoBrush">
+      <color alpha="255">
        <red>0</red>
-       <green>255</green>
+       <green>0</green>
        <blue>0</blue>
       </color>
      </brush>
@@ -201,8 +210,8 @@
     <property name="background">
      <brush brushstyle="SolidPattern">
       <color alpha="255">
-       <red>0</red>
-       <green>255</green>
+       <red>255</red>
+       <green>0</green>
        <blue>0</blue>
       </color>
      </brush>

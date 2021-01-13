@@ -160,6 +160,11 @@ class UiOutputDialog(QDialog):
             draw_landmarks(image, results.right_hand_landmarks, mp.solutions.holistic.HAND_CONNECTIONS)
             pass
 
+        if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
+            self.Warnings_List.item(1).setText("Không tìm thấy tay!")
+            self.Warnings_List.item(1).setBackground(QColor("red"))
+
+
         # Tính toán góc của khuôn mặt đối với camera
         if results.pose_landmarks is not None:
             chin_x = (results.pose_landmarks.landmark[9].x + results.pose_landmarks.landmark[10].x) / 2
@@ -209,10 +214,12 @@ class UiOutputDialog(QDialog):
             rotation_mat, _ = cv2.Rodrigues(rotation_vector)
             pose_mat = cv2.hconcat((rotation_mat, translation_vector))
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
-            self.Warnings_List.item(0).setText("1: Đầu di chuyển " + str(round(euler_angles[1][0], 2)) + " độ so với camera")
-            self.Warnings_List.item(0).setBackground(QColor(255,
-                                                                    0,
-                                                                    0))
+            angle = round(abs(euler_angles[1][0]), 2)
+            self.Warnings_List.item(0).setText("Đầu di chuyển " + str(angle) + " độ so với camera")
+            color = angle / self.head_angle_limit * 255
+            if color > 255:
+                color = 255
+            self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
             # print(euler_angles)
 
             if self.print_results:
@@ -225,6 +232,9 @@ class UiOutputDialog(QDialog):
 
                 cv2.line(image, (int(image_points[0][0]), int(image_points[0][1])),
                          (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1])), (255, 0, 0), 2)
+        else:
+            self.Warnings_List.item(0).setText("Không tìm thấy đầu!")
+            self.Warnings_List.item(0).setBackground(QColor("red"))
         return image
 
     def update_frame(self):
