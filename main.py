@@ -27,10 +27,6 @@ model_points = np.array([
     (150.0, -150.0, -125.0)  # Miệng phải
 ])
 
-warning_head_angle = "Cảnh cáo: Đầu thí sinh di chuyển so với camera! - 01"
-warning_missing = "Cảnh cáo: Không tìm thấy thí sinh!"
-warning_missing_hand = "Cảnh cáo: Không tìm thấy tay thí sinh!"
-
 
 def is_valid_normalized_value(value: float) -> bool:
     return (value > 0 or math.isclose(0, value)) and (value < 1 or math.isclose(1, value))
@@ -93,6 +89,12 @@ def draw_landmarks(image: np.ndarray,
         cv2.circle(image, landmark_px[0], 1, (0, round(255 * landmark_px[1]), 255 - round(255 * landmark_px[1])), 2)
 
 
+def get_output_layers(net):
+    layer_names = net.getLayerNames()
+    output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    return output_layers
+
+
 class UISettings(QDialog):
     def __init__(self):
         super(UISettings, self).__init__()
@@ -135,6 +137,11 @@ class UiOutputDialog(QDialog):
         self.settings = UISettings()
         self.Settings_Button.clicked.connect(lambda: self.handle_setting_button())
 
+        self.net = cv2.dnn.readNet("yolov3-tiny.weights", "yolov3-tiny.cfg")
+        with open("yolov3.txt", 'r') as f:
+            self.classes = [line.strip() for line in f.readlines()]
+        self.colors = np.random.uniform(0, 255, size=(len(self.classes), 3))
+
     def handle_setting_button(self):
         self.pause_video()
         self.settings.show()
@@ -154,8 +161,11 @@ class UiOutputDialog(QDialog):
         :param image: ảnh từ camera
         :return: image: ảnh đuọc xử lý sau khi nhận diện
         """
+        width = image.shape[1]
+        height = image.shape[0]
 
         image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        raw_img = image
         image.flags.writeable = False
 
         # Bắt đầu nhận diện
@@ -223,10 +233,10 @@ class UiOutputDialog(QDialog):
                 mouth_right
             ], dtype="double")
 
-            focal_length = image.shape[1]
+            focal_length = width
             camera_matrix = np.array(
-                [[focal_length, 0, image.shape[1] / 2],
-                 [0, focal_length, image.shape[0] / 2],
+                [[focal_length, 0, width / 2],
+                 [0, focal_length, height / 2],
                  [0, 0, 1]], dtype="double"
             )
 
@@ -258,6 +268,46 @@ class UiOutputDialog(QDialog):
         else:
             self.Warnings_List.item(0).setText("Không tìm thấy đầu!")
             self.Warnings_List.item(0).setBackground(QColor("red"))
+
+        blob = cv2.dnn.blobFromImage(raw_img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+        self.net.setInput(blob)
+        outs = self.net.forward(get_output_layers(self.net))
+
+        class_ids = []
+        confidences = []
+        boxes = []
+
+        for out in outs:
+            for detection in out:
+                scores = detection[5:]
+                class_id = np.argmax(scores)
+                confidence = scores[class_id]
+                if confidence > 0.5:
+                    center_x = int(detection[0] * width)
+                    center_y = int(detection[1] * height)
+                    w = int(detection[2] * width)
+                    h = int(detection[3] * height)
+                    x = center_x - w / 2
+                    y = center_y - h / 2
+                    class_ids.append(class_id)
+                    confidences.append(float(confidence))
+                    boxes.append([x, y, w, h])
+
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
+        for i in indices:
+            i = i[0]
+            box = boxes[i]
+            x = box[0]
+            y = box[1]
+            w = box[2]
+            h = box[3]
+
+            color = self.colors[class_ids[i]]
+            cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+            cv2.putText(image, str(self.classes[class_ids[i]]), (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color,
+                        2)
+
         return image
 
     def update_frame(self):
