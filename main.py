@@ -4,7 +4,7 @@ import math
 from typing import List, Tuple, Union
 
 import cv2
-from PyQt5.QtCore import QTimer, QDate
+from PyQt5.QtCore import QTimer, QDate, QDateTime
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtWidgets import QDialog, QApplication
 from PyQt5.uic import loadUi
@@ -112,6 +112,20 @@ class UISettings(QDialog):
         window.start_video()
 
 
+class UIWarnings(QDialog):
+    def __init__(self):
+        super(UIWarnings, self).__init__()
+        loadUi("warnings.ui", self)
+
+        self.Confirm_Button.accepted.connect(lambda: window.start_video())
+        self.Confirm_Button.rejected.connect(lambda: window.start_video())
+
+    def handle_show(self, warnings):
+        for warning in warnings:
+            self.Warnings_List.addItem(warning)
+        self.open()
+
+
 class UiOutputDialog(QDialog):
     def __init__(self):
         """ Khởi động ứng dụng """
@@ -137,10 +151,19 @@ class UiOutputDialog(QDialog):
         self.settings = UISettings()
         self.Settings_Button.clicked.connect(lambda: self.handle_setting_button())
 
+        self.warnings = []
+        self.prev_waring_code = -1
+        self.warning_history = UIWarnings()
+        self.Warning_History.clicked.connect(lambda: self.handle_waring_history_button())
+
         self.net = cv2.dnn.readNet("yolov3-tiny.weights", "yolov3-tiny.cfg")
         with open("yolov3.txt", 'r') as f:
             self.classes = [line.strip() for line in f.readlines()]
         self.colors = np.random.uniform(0, 255, size=(len(self.classes), 3))
+
+    def handle_waring_history_button(self):
+        self.pause_video()
+        self.warning_history.handle_show(self.warnings)
 
     def handle_setting_button(self):
         self.pause_video()
@@ -186,14 +209,23 @@ class UiOutputDialog(QDialog):
         if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
             self.Warnings_List.item(1).setText("Không tìm thấy tay!")
             self.Warnings_List.item(1).setBackground(QColor("red"))
+            if self.prev_waring_code != 0:
+                self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
+                self.prev_waring_code = 0
         else:
             if results.left_hand_landmarks is None:
                 self.Warnings_List.item(1).setText("Không tìm thấy tay trái!")
                 self.Warnings_List.item(1).setBackground(QColor("yellow"))
+                if self.prev_waring_code != 1:
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay trái!")
+                    self.prev_waring_code = 1
             else:
                 if results.right_hand_landmarks is None:
                     self.Warnings_List.item(1).setText("Không tìm thấy tay phải!")
                     self.Warnings_List.item(1).setBackground(QColor("yellow"))
+                    if self.prev_waring_code != 2:
+                        self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay phải!")
+                        self.prev_waring_code = 2
                 else:
                     self.Warnings_List.item(1).setText("")
                     self.Warnings_List.item(1).setBackground(QColor("white"))
@@ -251,6 +283,9 @@ class UiOutputDialog(QDialog):
             self.Warnings_List.item(0).setText("Đầu di chuyển " + str(angle) + " độ so với camera")
             color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
+                if self.prev_waring_code != 3:
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển " + str(angle) + " độ so với camera")
+                    self.prev_waring_code = 3
                 color = 255
             self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
             # print(euler_angles)
@@ -268,6 +303,9 @@ class UiOutputDialog(QDialog):
         else:
             self.Warnings_List.item(0).setText("Không tìm thấy đầu!")
             self.Warnings_List.item(0).setBackground(QColor("red"))
+            if self.prev_waring_code != 4:
+                self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy đầu!")
+                self.prev_waring_code = 4
 
         blob = cv2.dnn.blobFromImage(raw_img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
         self.net.setInput(blob)

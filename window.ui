@@ -239,7 +239,7 @@
     <string>Menu cảnh cáo</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="Warning_History">
    <property name="geometry">
     <rect>
      <x>1100</x>
