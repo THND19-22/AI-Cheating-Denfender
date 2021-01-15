@@ -6,7 +6,7 @@ from typing import List, Tuple, Union
 import cv2
 from PyQt5.QtCore import QTimer, QDate, QDateTime
 from PyQt5.QtGui import QImage, QPixmap, QColor
-from PyQt5.QtWidgets import QDialog, QApplication
+from PyQt5.QtWidgets import QDialog, QApplication, QTreeWidgetItem
 from PyQt5.uic import loadUi
 import mediapipe as mp
 import numpy as np
@@ -86,7 +86,7 @@ def draw_landmarks(image: np.ndarray,
                          idx_to_coordinates[end_idx][0], (0, g, r),
                          1)
     for landmark_px in idx_to_coordinates.values():
-        cv2.circle(image, landmark_px[0], 1, (0, round(255 * landmark_px[1]), 255 - round(255 * landmark_px[1])), 2)
+        cv2.circle(image, landmark_px[0], 1, (0, round(255 * landmark_px[1]), 255 - round(255 * landmark_px[1])), 1)
 
 
 def get_output_layers(net):
@@ -148,6 +148,8 @@ class UiOutputDialog(QDialog):
         loadUi("window.ui", self)
 
         self.holistic = mp.solutions.holistic.Holistic(upper_body_only=True)
+        self.face = mp.solutions.face_mesh.FaceMesh(max_num_faces=100)
+        self.hand = mp.solutions.hands.Hands(max_num_hands=100)
 
         now = QDate.currentDate()
         current_date = now.toString('ddd dd MMMM yyyy')
@@ -199,69 +201,44 @@ class UiOutputDialog(QDialog):
         height = image.shape[0]
 
         raw_img = image
+
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image.flags.writeable = False
 
         # Bắt đầu nhận diện
-        results = self.holistic.process(image)
+        faces = self.face.process(image)
+        hands = self.hand.process(image)
 
         image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        if self.settings.print_results:
-            # Vẽ dáng người
-            draw_landmarks(image, results.pose_landmarks, mp.solutions.holistic.POSE_CONNECTIONS)
+        if not faces.multi_face_landmarks:
+            return image
 
-            # Vẽ tay
-            draw_landmarks(image, results.left_hand_landmarks, mp.solutions.holistic.HAND_CONNECTIONS)
-            draw_landmarks(image, results.right_hand_landmarks, mp.solutions.holistic.HAND_CONNECTIONS)
-            pass
-
-        if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
-            self.Warnings_List.item(2).setText("Không tìm thấy tay!")
-            self.Warnings_List.item(2).setBackground(QColor("red"))
-            if self.prev_waring_code != 0:
-                self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
-                self.prev_waring_code = 0
-        else:
-            if results.left_hand_landmarks is None:
-                self.Warnings_List.item(2).setText("Không tìm thấy tay trái!")
-                self.Warnings_List.item(2).setBackground(QColor("yellow"))
-                if self.prev_waring_code != 1:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay trái!")
-                    self.prev_waring_code = 1
-            else:
-                if results.right_hand_landmarks is None:
-                    self.Warnings_List.item(2).setText("Không tìm thấy tay phải!")
-                    self.Warnings_List.item(2).setBackground(QColor("yellow"))
-                    if self.prev_waring_code != 2:
-                        self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay phải!")
-                        self.prev_waring_code = 2
-                else:
-                    self.Warnings_List.item(2).setText("")
-                    self.Warnings_List.item(2).setBackground(QColor("white"))
-
-        # Tính toán góc của khuôn mặt đối với camera
-        if results.pose_landmarks is not None:
-            chin_x = (results.pose_landmarks.landmark[9].x + results.pose_landmarks.landmark[10].x) / 2
-            chin_y = (results.pose_landmarks.landmark[9].y + results.pose_landmarks.landmark[10].y) - \
-                     results.pose_landmarks.landmark[0].y
-            # print(results.pose_landmarks.landmark[0].visibility)
-            nose_tip = normalize_to_pixel_coordinates(results.pose_landmarks.landmark[0].x,
-                                                      results.pose_landmarks.landmark[0].y, image.shape[1],
-                                                      image.shape[0])
-            chin = normalize_to_pixel_coordinates(chin_x, chin_y, image.shape[1], image.shape[0])
-            left_eye_outer = normalize_to_pixel_coordinates(results.pose_landmarks.landmark[3].x,
-                                                            results.pose_landmarks.landmark[3].y, image.shape[1],
-                                                            image.shape[0])
-            right_eye_outer = normalize_to_pixel_coordinates(results.pose_landmarks.landmark[6].x,
-                                                             results.pose_landmarks.landmark[6].y, image.shape[1],
-                                                             image.shape[0])
-            mouth_left = normalize_to_pixel_coordinates(results.pose_landmarks.landmark[9].x,
-                                                        results.pose_landmarks.landmark[9].y, image.shape[1],
-                                                        image.shape[0])
-            mouth_right = normalize_to_pixel_coordinates(results.pose_landmarks.landmark[10].x,
-                                                         results.pose_landmarks.landmark[10].y, image.shape[1],
-                                                         image.shape[0])
+        count = 0
+        for face_landmarks in faces.multi_face_landmarks:
+            if self.settings.print_results:
+                draw_landmarks(image, face_landmarks, mp.solutions.face_mesh.FACE_CONNECTIONS)
+            """
+            nose_tip 1
+            chin = 199
+            left_eye_outer = 249
+            right_eye_outer = 7
+            mouth_left = 291
+            mouth_right = 61
+            """
+            nose_tip = normalize_to_pixel_coordinates(face_landmarks.landmark[1].x,
+                                                      face_landmarks.landmark[1].y, width, height)
+            chin = normalize_to_pixel_coordinates(face_landmarks.landmark[199].x,
+                                                  face_landmarks.landmark[199].y, width, height)
+            left_eye_outer = normalize_to_pixel_coordinates(face_landmarks.landmark[249].x,
+                                                            face_landmarks.landmark[249].y, width, height)
+            right_eye_outer = normalize_to_pixel_coordinates(face_landmarks.landmark[7].x,
+                                                             face_landmarks.landmark[7].y, width, height)
+            mouth_left = normalize_to_pixel_coordinates(face_landmarks.landmark[291].x,
+                                                        face_landmarks.landmark[291].y, width, height)
+            mouth_right = normalize_to_pixel_coordinates(face_landmarks.landmark[61].x,
+                                                         face_landmarks.landmark[61].y, width, height)
 
             if chin is None or left_eye_outer is None or right_eye_outer is None or mouth_left is None or mouth_right is None:
                 return image
@@ -286,21 +263,30 @@ class UiOutputDialog(QDialog):
             (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
                                                                           dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
 
+            if self.Warnings_List.topLevelItemCount() <= count:
+                item = QTreeWidgetItem(["Thí sinh #" + str(count + 1)])
+                item.setExpanded(True)
+                item.addChildren([QTreeWidgetItem(), QTreeWidgetItem()])
+                self.Warnings_List.addTopLevelItem(item)
+
             rotation_mat, _ = cv2.Rodrigues(rotation_vector)
             pose_mat = cv2.hconcat((rotation_mat, translation_vector))
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
             angle = round(abs(euler_angles[1][0]), 2)
-            self.Warnings_List.item(0).setText("Đầu di chuyển ngang " + str(angle) + " độ so với camera")
+            self.Warnings_List.topLevelItem(count).child(0).setText(0, "Đầu di chuyển ngang " + str(
+                angle) + " độ so với camera")
             color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
                 if self.prev_waring_code_1 != 3:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển ngang " + str(angle) + " độ so với camera")
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển ngang " + str(
+                        angle) + " độ so với camera")
                     self.prev_waring_code_1 = 3
                 color = 255
-            self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
-            # print(euler_angles)
+            self.Warnings_List.topLevelItem(count).child(0).setBackground(0, QColor(color, 255 - color, 0))
+
             angle = round(abs(euler_angles[2][0]), 2)
-            self.Warnings_List.item(1).setText("Đầu di chuyển dọc " + str(angle) + " độ so với camera")
+            self.Warnings_List.topLevelItem(count).child(1).setText(0, "Đầu di chuyển dọc " + str(
+                angle) + " độ so với camera")
             color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
                 if self.prev_waring_code_2 != 5:
@@ -309,7 +295,7 @@ class UiOutputDialog(QDialog):
                             angle) + " độ so với camera")
                     self.prev_waring_code_2 = 5
                 color = 255
-            self.Warnings_List.item(1).setBackground(QColor(color, 255 - color, 0))
+            self.Warnings_List.topLevelItem(count).child(1).setBackground(0, QColor(color, 255 - color, 0))
 
             if self.settings.print_results:
                 (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 500.0)]), rotation_vector,
@@ -321,15 +307,70 @@ class UiOutputDialog(QDialog):
 
                 cv2.line(image, (int(image_points[0][0]), int(image_points[0][1])),
                          (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1])), (255, 0, 0), 2)
-        else:
-            self.Warnings_List.item(0).setText("Không tìm thấy đầu!")
-            self.Warnings_List.item(0).setBackground(QColor("red"))
-            self.Warnings_List.item(1).setText("Không tìm thấy đầu!")
-            self.Warnings_List.item(1).setBackground(QColor("red"))
-            if self.prev_waring_code_1 != 4:
-                self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy đầu!")
-                self.prev_waring_code_1 = 4
+            count += 1
 
+        while self.Warnings_List.topLevelItemCount() > len(faces.multi_face_landmarks):
+            self.Warnings_List.takeTopLevelItem(len(faces.multi_face_landmarks))
+
+        if not hands.multi_hand_landmarks:
+            for i in range(len(faces.multi_face_landmarks)):
+                if self.Warnings_List.topLevelItem(i).childCount() == 2:
+                    self.Warnings_List.topLevelItem(i).addChild(QTreeWidgetItem())
+                self.Warnings_List.topLevelItem(i).child(2).setText(0, "Không tìm thấy tay!")
+                self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("red"))
+                if self.prev_waring_code != 0:
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
+                    self.prev_waring_code = 0
+            return image
+
+        face_list = {}
+        for hand_landmarks in hands.multi_hand_landmarks:
+            if self.settings.print_results:
+                draw_landmarks(image, hand_landmarks, mp.solutions.hands.HAND_CONNECTIONS)
+
+            hand_x = hand_landmarks.landmark[0].x
+            hand_y = hand_landmarks.landmark[0].y
+
+            best_face = -1
+            best_face_value = 1
+
+            count = 0
+            for face_landmarks in faces.multi_face_landmarks:
+                if count in face_list and face_list[count] == 2:
+                    count += 1
+                    continue
+                face_x = face_landmarks.landmark[0].x
+                face_y = face_landmarks.landmark[0].y
+                dist = math.sqrt(pow(abs(face_x - hand_x), 2) + pow(abs(face_y - hand_y), 2))
+                if dist < best_face_value:
+                    best_face_value = dist
+                    best_face = count
+                count += 1
+            if best_face != -1:
+                if best_face in face_list:
+                    face_list[best_face] = 2
+                else:
+                    face_list[best_face] = 1
+
+        for i in range(len(faces.multi_face_landmarks)):
+            if self.Warnings_List.topLevelItem(i).childCount() == 2:
+                self.Warnings_List.topLevelItem(i).addChild(QTreeWidgetItem())
+            if i in face_list:
+                if face_list[i] == 1:
+                    self.Warnings_List.topLevelItem(i).child(2).setText(0, "Chỉ phát hiện được một tay!")
+                    self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("yellow"))
+                    if self.prev_waring_code != 1:
+                        self.warnings.append(QDateTime.currentDateTime().toString() + ": Chỉ phát hiện được một tay!")
+                        self.prev_waring_code = 1
+                else:
+                    if self.Warnings_List.topLevelItem(i).childCount() == 3:
+                        self.Warnings_List.topLevelItem(i).takeChild(2)
+            else:
+                self.Warnings_List.topLevelItem(i).child(2).setText(0, "Không tìm thấy tay!")
+                self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("red"))
+                if self.prev_waring_code != 0:
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
+                    self.prev_waring_code = 0
         """
         blob = cv2.dnn.blobFromImage(raw_img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
         self.net.setInput(blob)
@@ -386,7 +427,7 @@ class UiOutputDialog(QDialog):
         :param windowed: số window đang hiện
         """
         image = cv2.resize(image, (640, 480))
-        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        image = cv2.flip(image, 1)
         try:
             image = self.face_rec(image)
         except Exception as e:
