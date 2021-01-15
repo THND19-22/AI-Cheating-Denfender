@@ -117,13 +117,22 @@ class UIWarnings(QDialog):
         super(UIWarnings, self).__init__()
         loadUi("warnings.ui", self)
 
+        self.warning_list = []
+        self.Save_Warnings.clicked.connect(lambda: self.handle_write_to_file())
+
         self.Confirm_Button.accepted.connect(lambda: window.start_video())
         self.Confirm_Button.rejected.connect(lambda: window.start_video())
 
     def handle_show(self, warnings):
+        self.warning_list = warnings
         for warning in warnings:
             self.Warnings_List.addItem(warning)
         self.open()
+
+    def handle_write_to_file(self):
+        with open("log.txt", "wt", encoding='utf-8') as log:
+            for warning in self.warning_list:
+                log.write(warning + "\n")
 
 
 class UiOutputDialog(QDialog):
@@ -153,6 +162,8 @@ class UiOutputDialog(QDialog):
 
         self.warnings = []
         self.prev_waring_code = -1
+        self.prev_waring_code_1 = -1
+        self.prev_waring_code_2 = -1
         self.warning_history = UIWarnings()
         self.Warning_History.clicked.connect(lambda: self.handle_waring_history_button())
 
@@ -187,7 +198,6 @@ class UiOutputDialog(QDialog):
         width = image.shape[1]
         height = image.shape[0]
 
-        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
         raw_img = image
         image.flags.writeable = False
 
@@ -207,28 +217,28 @@ class UiOutputDialog(QDialog):
             pass
 
         if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
-            self.Warnings_List.item(1).setText("Không tìm thấy tay!")
-            self.Warnings_List.item(1).setBackground(QColor("red"))
+            self.Warnings_List.item(2).setText("Không tìm thấy tay!")
+            self.Warnings_List.item(2).setBackground(QColor("red"))
             if self.prev_waring_code != 0:
                 self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
                 self.prev_waring_code = 0
         else:
             if results.left_hand_landmarks is None:
-                self.Warnings_List.item(1).setText("Không tìm thấy tay trái!")
-                self.Warnings_List.item(1).setBackground(QColor("yellow"))
+                self.Warnings_List.item(2).setText("Không tìm thấy tay trái!")
+                self.Warnings_List.item(2).setBackground(QColor("yellow"))
                 if self.prev_waring_code != 1:
                     self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay trái!")
                     self.prev_waring_code = 1
             else:
                 if results.right_hand_landmarks is None:
-                    self.Warnings_List.item(1).setText("Không tìm thấy tay phải!")
-                    self.Warnings_List.item(1).setBackground(QColor("yellow"))
+                    self.Warnings_List.item(2).setText("Không tìm thấy tay phải!")
+                    self.Warnings_List.item(2).setBackground(QColor("yellow"))
                     if self.prev_waring_code != 2:
                         self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay phải!")
                         self.prev_waring_code = 2
                 else:
-                    self.Warnings_List.item(1).setText("")
-                    self.Warnings_List.item(1).setBackground(QColor("white"))
+                    self.Warnings_List.item(2).setText("")
+                    self.Warnings_List.item(2).setBackground(QColor("white"))
 
         # Tính toán góc của khuôn mặt đối với camera
         if results.pose_landmarks is not None:
@@ -280,15 +290,26 @@ class UiOutputDialog(QDialog):
             pose_mat = cv2.hconcat((rotation_mat, translation_vector))
             _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(pose_mat)
             angle = round(abs(euler_angles[1][0]), 2)
-            self.Warnings_List.item(0).setText("Đầu di chuyển " + str(angle) + " độ so với camera")
+            self.Warnings_List.item(0).setText("Đầu di chuyển ngang " + str(angle) + " độ so với camera")
             color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
-                if self.prev_waring_code != 3:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển " + str(angle) + " độ so với camera")
-                    self.prev_waring_code = 3
+                if self.prev_waring_code_1 != 3:
+                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển ngang " + str(angle) + " độ so với camera")
+                    self.prev_waring_code_1 = 3
                 color = 255
             self.Warnings_List.item(0).setBackground(QColor(color, 255 - color, 0))
             # print(euler_angles)
+            angle = round(abs(euler_angles[2][0]), 2)
+            self.Warnings_List.item(1).setText("Đầu di chuyển dọc " + str(angle) + " độ so với camera")
+            color = int(angle / self.settings.head_angle_limit * 255)
+            if color > 255:
+                if self.prev_waring_code_2 != 5:
+                    self.warnings.append(
+                        QDateTime.currentDateTime().toString() + ": Đầu di chuyển dọc " + str(
+                            angle) + " độ so với camera")
+                    self.prev_waring_code_2 = 5
+                color = 255
+            self.Warnings_List.item(1).setBackground(QColor(color, 255 - color, 0))
 
             if self.settings.print_results:
                 (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 500.0)]), rotation_vector,
@@ -303,10 +324,13 @@ class UiOutputDialog(QDialog):
         else:
             self.Warnings_List.item(0).setText("Không tìm thấy đầu!")
             self.Warnings_List.item(0).setBackground(QColor("red"))
-            if self.prev_waring_code != 4:
+            self.Warnings_List.item(1).setText("Không tìm thấy đầu!")
+            self.Warnings_List.item(1).setBackground(QColor("red"))
+            if self.prev_waring_code_1 != 4:
                 self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy đầu!")
-                self.prev_waring_code = 4
+                self.prev_waring_code_1 = 4
 
+        """
         blob = cv2.dnn.blobFromImage(raw_img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
         self.net.setInput(blob)
         outs = self.net.forward(get_output_layers(self.net))
@@ -345,7 +369,7 @@ class UiOutputDialog(QDialog):
             cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
             cv2.putText(image, str(self.classes[class_ids[i]]), (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color,
                         2)
-
+        """
         return image
 
     def update_frame(self):
@@ -362,6 +386,7 @@ class UiOutputDialog(QDialog):
         :param windowed: số window đang hiện
         """
         image = cv2.resize(image, (640, 480))
+        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
         try:
             image = self.face_rec(image)
         except Exception as e:
