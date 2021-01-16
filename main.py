@@ -111,6 +111,9 @@ class UISettings(QDialog):
         self.head_angle_limit = int(self.Head_Angle_Limit.text())
         window.start_video()
 
+    def closeEvent(self, event):
+        window.start_video()
+
 
 class UIWarnings(QDialog):
     def __init__(self):
@@ -133,6 +136,9 @@ class UIWarnings(QDialog):
         with open("log.txt", "wt", encoding='utf-8') as log:
             for warning in self.warning_list:
                 log.write(warning + "\n")
+
+    def closeEvent(self, event):
+        window.start_video()
 
 
 class UiOutputDialog(QDialog):
