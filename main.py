@@ -219,6 +219,7 @@ class UiOutputDialog(QDialog):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         if not faces.multi_face_landmarks:
+            self.Warnings_List.clear()
             return image
 
         count = 0
