@@ -271,9 +271,9 @@ class UiOutputDialog(QDialog):
 
             if self.Warnings_List.topLevelItemCount() <= count:
                 item = QTreeWidgetItem(["Thí sinh #" + str(count + 1)])
-                item.setExpanded(True)
                 item.addChildren([QTreeWidgetItem(), QTreeWidgetItem()])
                 self.Warnings_List.addTopLevelItem(item)
+                self.Warnings_List.topLevelItem(count).setExpanded(True)
 
             rotation_mat, _ = cv2.Rodrigues(rotation_vector)
             pose_mat = cv2.hconcat((rotation_mat, translation_vector))
@@ -284,7 +284,7 @@ class UiOutputDialog(QDialog):
             color = int(angle / self.settings.head_angle_limit * 255)
             if color > 255:
                 if self.prev_waring_code_1 != 3:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Đầu di chuyển ngang " + str(
+                    self.warnings.append(QDateTime.currentDateTime().toString() + " - " + "Thí sinh #" + str(count + 1) + " - : Đầu di chuyển ngang " + str(
                         angle) + " độ so với camera")
                     self.prev_waring_code_1 = 3
                 color = 255
@@ -297,7 +297,7 @@ class UiOutputDialog(QDialog):
             if color > 255:
                 if self.prev_waring_code_2 != 5:
                     self.warnings.append(
-                        QDateTime.currentDateTime().toString() + ": Đầu di chuyển dọc " + str(
+                        QDateTime.currentDateTime().toString() + " - " + "Thí sinh #" + str(count + 1) + " - : Đầu di chuyển dọc " + str(
                             angle) + " độ so với camera")
                     self.prev_waring_code_2 = 5
                 color = 255
@@ -325,7 +325,7 @@ class UiOutputDialog(QDialog):
                 self.Warnings_List.topLevelItem(i).child(2).setText(0, "Không tìm thấy tay!")
                 self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("red"))
                 if self.prev_waring_code != 0:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
+                    self.warnings.append(QDateTime.currentDateTime().toString() + " - " + "Thí sinh #" + str(i + 1) + " - : Không tìm thấy tay!")
                     self.prev_waring_code = 0
             return image
 
@@ -366,7 +366,7 @@ class UiOutputDialog(QDialog):
                     self.Warnings_List.topLevelItem(i).child(2).setText(0, "Chỉ phát hiện được một tay!")
                     self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("yellow"))
                     if self.prev_waring_code != 1:
-                        self.warnings.append(QDateTime.currentDateTime().toString() + ": Chỉ phát hiện được một tay!")
+                        self.warnings.append(QDateTime.currentDateTime().toString() + " - " + "Thí sinh #" + str(count + 1) + " - Chỉ phát hiện được một tay!")
                         self.prev_waring_code = 1
                 else:
                     if self.Warnings_List.topLevelItem(i).childCount() == 3:
@@ -375,7 +375,7 @@ class UiOutputDialog(QDialog):
                 self.Warnings_List.topLevelItem(i).child(2).setText(0, "Không tìm thấy tay!")
                 self.Warnings_List.topLevelItem(i).child(2).setBackground(0, QColor("red"))
                 if self.prev_waring_code != 0:
-                    self.warnings.append(QDateTime.currentDateTime().toString() + ": Không tìm thấy tay!")
+                    self.warnings.append(QDateTime.currentDateTime().toString() + " - " + "Thí sinh #" + str(count + 1) + " - : Không tìm thấy tay!")
                     self.prev_waring_code = 0
         """
         blob = cv2.dnn.blobFromImage(raw_img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)

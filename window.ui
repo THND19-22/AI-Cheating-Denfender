@@ -35,7 +35,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>icon.png</normaloff>icon.png</iconset>
+    <normaloff>logo.PNG</normaloff>logo.PNG</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>true</bool>
@@ -137,7 +137,7 @@
    <property name="font">
     <font>
      <family>Verdana</family>
-     <pointsize>10</pointsize>
+     <pointsize>9</pointsize>
     </font>
    </property>
    <property name="accessibleName">
