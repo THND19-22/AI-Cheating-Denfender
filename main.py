@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import sys
 import math
@@ -153,7 +154,7 @@ class UiOutputDialog(QDialog):
 
         loadUi("window.ui", self)
 
-        self.holistic = mp.solutions.holistic.Holistic(upper_body_only=True)
+        self.holistic = mp.solutions.holistic.Holistic()
         self.face = mp.solutions.face_mesh.FaceMesh(max_num_faces=100)
         self.hand = mp.solutions.hands.Hands(max_num_hands=100)
 
@@ -225,7 +226,7 @@ class UiOutputDialog(QDialog):
         count = 0
         for face_landmarks in faces.multi_face_landmarks:
             if self.settings.print_results:
-                draw_landmarks(image, face_landmarks, mp.solutions.face_mesh.FACE_CONNECTIONS)
+                draw_landmarks(image, face_landmarks, mp.solutions.face_mesh.FACEMESH_CONTOURS)
             """
             nose_tip 1
             chin = 199
@@ -425,9 +426,9 @@ class UiOutputDialog(QDialog):
         Cập nhật hình ảnh lên ứng dụng
         """
         ret, self.image = self.capture.read()
-        self.display_image(self.image, 1)
+        asyncio.run(self.display_image(self.image, 1))
 
-    def display_image(self, image, windowed=1):
+    async def display_image(self, image, windowed=1):
         """
         Phát hình ảnh đã được xử lý lên ứng dụng
         :param image: ảnh từ camera
