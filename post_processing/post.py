@@ -1,9 +1,10 @@
 import sys
 
+from numba.experimental import jitclass
+
 sys.path.append("..")
 import numpy as np
 import numba
-import cv2
 
 
 @numba.njit
@@ -28,7 +29,8 @@ def mark_islands(truth_islands) -> (np.ndarray, dict):
                 left = islands[iy, ix - 1]
                 if not above and not left:
                     islands[iy, ix] = island_num
-                    island_hierarchy[island_num] = island_num  # stays None if islands is isolated, or gets changed to master islands later
+                    island_hierarchy[
+                        island_num] = island_num  # stays None if islands is isolated, or gets changed to master islands later
                     island_num += 1
                 elif above and not left:
                     islands[iy, ix] = above
@@ -90,24 +92,27 @@ def islands_max(heatmap, islands, island_hierarchy):
 def find_peaks(heatmap, threshold):
     """This takes a 2D heatmap, and returns all peaks on discontinuous regions (islands) for which the heatmap is above the threshold"""
     truth_islands = heatmap > threshold  # get which parts are above the threshold
-    segmented_islands, island_hierarchy = mark_islands(truth_islands)  # segment and label the discontinuous regions, returns a island hierarchy dict.
+    segmented_islands, island_hierarchy = mark_islands(
+        truth_islands)  # segment and label the discontinuous regions, returns a island hierarchy dict.
     if not len(island_hierarchy):  # in case nothing found
         return None
-    sorted_island_hierarchy = sort_island_hierarchy(island_hierarchy)  # flatten the island hierarchy to point to the top island label
-    peaks, island_max = islands_max(heatmap, segmented_islands, sorted_island_hierarchy)  # get the maximum peak location (and value) for each island
+    sorted_island_hierarchy = sort_island_hierarchy(
+        island_hierarchy)  # flatten the island hierarchy to point to the top island label
+    peaks, island_max = islands_max(heatmap, segmented_islands,
+                                    sorted_island_hierarchy)  # get the maximum peak location (and value) for each island
     return peaks  # ,island_max
 
 
 spec = [
-        ('field_y', numba.float32[:, :]),
-        ('field_x', numba.float32[:, :]),
-        ('sum_y', numba.float32),
-        ('sum_x', numba.float32),
-        # ('num_fields', numba.uint16),
-        ]
+    ('field_y', numba.float32[:, :]),
+    ('field_x', numba.float32[:, :]),
+    ('sum_y', numba.float32),
+    ('sum_x', numba.float32),
+    # ('num_fields', numba.uint16),
+]
 
 
-@numba.jitclass(spec)
+@jitclass(spec)
 class LineVectorIntegral:
     def __init__(self, field_y, field_x):
         self.field_y = field_y
@@ -283,7 +288,8 @@ class Skeletonizer:
         :param num_joints max number of possible joints, is min of len(start_kpts),len(end_kpts)
         :returns matched joint list of (start_kpt,end_kpt)"""
         filtered_candidates = filter(lambda jc: jc[0] > self.JOINT_ALIGNMENT_THRESHOLD, joint_candidates)
-        sorted_candidates = sorted(filtered_candidates, key=lambda x: x[0], reverse=True)  # sort to find highest alignment joints
+        sorted_candidates = sorted(filtered_candidates, key=lambda x: x[0],
+                                   reverse=True)  # sort to find highest alignment joints
 
         matched_start_kpts = []
         matched_end_kpts = []

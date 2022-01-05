@@ -1,17 +1,23 @@
-import asyncio
+# coding=utf-8
 import datetime
 import sys
-import math
 from typing import List, Tuple, Union
 
 import cv2
+import math
+import mediapipe as mp
+import numpy as np
 from PyQt5.QtCore import QTimer, QDate, QDateTime
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from PyQt5.QtWidgets import QDialog, QApplication, QTreeWidgetItem
 from PyQt5.uic import loadUi
-import mediapipe as mp
-import numpy as np
 from mediapipe.framework.formats import landmark_pb2
+
+import visualizations as vis
+from model_wrapper import ModelWrapper
+import configs.draw_config as draw_config
+
+model_path = "trained_models/model11_test-15Sun1219-2101"
 
 PRESENCE_THRESHOLD = 0.5
 RGB_CHANNELS = 3
@@ -146,6 +152,7 @@ class UiOutputDialog(QDialog):
     def __init__(self):
         """ Khởi động ứng dụng """
         super(UiOutputDialog, self).__init__()
+        self.model_wrapper = ModelWrapper(model_path)
 
         self.capture = None
 
@@ -198,6 +205,15 @@ class UiOutputDialog(QDialog):
     def pause_video(self):
         self.timer.stop()
 
+    def process_frame(self, img):
+
+        skeletons = self.model_wrapper.process_image(img)
+
+        skeleton_drawer = vis.SkeletonDrawer(img, draw_config)
+        for skeleton in skeletons:
+            skeleton.draw_skeleton(skeleton_drawer.joint_draw, skeleton_drawer.kpt_draw)
+        return img
+
     def face_rec(self, image):
         """
         Nhận diện dáng người và tay từ ảnh đã cho
@@ -207,16 +223,15 @@ class UiOutputDialog(QDialog):
         width = image.shape[1]
         height = image.shape[0]
 
-        raw_img = image
-
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image.flags.writeable = False
+
+        raw_img = image
+        image = self.process_frame(image)
 
         # Bắt đầu nhận diện
-        faces = self.face.process(image)
-        hands = self.hand.process(image)
+        faces = self.face.process(raw_img)
+        hands = self.hand.process(raw_img)
 
-        image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         if not faces.multi_face_landmarks:
@@ -426,9 +441,9 @@ class UiOutputDialog(QDialog):
         Cập nhật hình ảnh lên ứng dụng
         """
         ret, self.image = self.capture.read()
-        asyncio.run(self.display_image(self.image, 1))
+        self.display_image(self.image, 1)
 
-    async def display_image(self, image, windowed=1):
+    def display_image(self, image, windowed=1):
         """
         Phát hình ảnh đã được xử lý lên ứng dụng
         :param image: ảnh từ camera
